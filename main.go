@@ -23,23 +23,56 @@ const (
 	// GUI
 	ballSize     = 5
 	magSize      = 5
+	bellSize     = 20
 	drawVelocity = false
 
 	// Physics
 	magTTL    = 10    // Time to live of a mag in seconds
 	maxLength = 300.  // Distance max between ball and mag to have effect
 	maxForce  = 3000. // Max force to apply to ball
+
+	// Game Settings
+	preparationDuration = 5    // Time for preparing, before game starts
+	scoreStartingPoints = 6128 // Max score for 1 minute
+	scoreMalusMagnet    = 42   // How many malus points for each magnet
 )
+
+const (
+	CollisionUnknown = iota
+	CollisionBall
+	CollisionBell
+	collisionEnd
+)
+
+type GameState int
+
+const (
+	GameUnknown GameState = iota
+	GameInitialising
+	GameReady
+	GamePreparing
+	GameRunning
+	GameEnded
+	gameEnd
+)
+
+var gamestate = GameInitialising
+var gamePreparingTimeout float64
+var magnetCounter = 0
+var score int
 
 var (
 	ballImage = ebiten.NewImage(ballSize, ballSize)
 	magImage  = ebiten.NewImage(magSize, magSize)
+	bellImage = ebiten.NewImage(bellSize, bellSize)
 	colorBlue = color.RGBA{B: 255, A: 1}
+	colorRed  = color.RGBA{R: 255, A: 1}
 )
 
 func init() {
 	ballImage.Fill(color.White)
 	magImage.Fill(colorBlue)
+	bellImage.Fill(colorRed)
 }
 
 func main() {
@@ -60,6 +93,7 @@ type Game struct {
 	space *cp.Space
 	ball  *cp.Body
 	mags  []Mag
+	bell  *cp.Body
 	time  float64
 }
 
@@ -67,21 +101,63 @@ func NewGame() *Game {
 	// Chipmunk Space
 	space := cp.NewSpace()
 
-	// S wall
+	createWalls(space)
+
+	var mass = 1.
+
+	// Ball
+	ballMoment := cp.MomentForCircle(mass, 0, ballSize, cp.Vector{})
+	ballBody := space.AddBody(cp.NewBody(mass, ballMoment))
+	ballBody.SetPosition(cp.Vector{X: screenWidth / 6 * 5, Y: screenHeight / 6})
+	ballShape := space.AddShape(cp.NewCircle(ballBody, ballSize, cp.Vector{}))
+	ballShape.SetFriction(0.7)
+	ballShape.SetElasticity(.7)
+	ballShape.SetCollisionType(CollisionBall)
+
+	// Mags
+	mags := make([]Mag, 0, 10)
+	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4, Y: screenHeight / 4}, enabled: true})
+	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4 * 3, Y: screenHeight / 4}, enabled: true})
+	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4 * 3, Y: screenHeight / 2}, enabled: true})
+
+	// Bell
+	bellMoment := cp.MomentForCircle(mass, 0, bellSize, cp.Vector{})
+	bellBody := space.AddBody(cp.NewBody(mass, bellMoment))
+	bellBody.SetPosition(cp.Vector{X: screenWidth / 6, Y: screenHeight / 6 * 5})
+	bellShape := space.AddShape(cp.NewCircle(bellBody, bellSize, cp.Vector{}))
+	bellShape.SetFriction(0.7)
+	bellShape.SetElasticity(.7)
+	bellShape.SetCollisionType(CollisionBell)
+
+	game := &Game{
+		space: space,
+		ball:  ballBody,
+		mags:  mags,
+		bell:  bellBody,
+	}
+
+	space.NewCollisionHandler(CollisionBall, CollisionBell).PreSolveFunc = collisionBallBellCallback()
+
+	gamestate = GameReady
+
+	return game
+}
+
+func createWalls(space *cp.Space) {
 	topWall := cp.NewBox2(space.StaticBody, cp.BB{L: -10, B: 0, R: screenWidth + 10, T: -10}, 0)
-	topWall.SetFriction(1)
+	topWall.SetFriction(0)
 	topWall.SetElasticity(.7)
 	space.AddShape(topWall)
 	bottomWall := cp.NewBox2(space.StaticBody, cp.BB{L: -10, B: screenHeight + 10, R: screenWidth + 10, T: screenHeight}, 0)
-	bottomWall.SetFriction(1)
+	bottomWall.SetFriction(0)
 	bottomWall.SetElasticity(.7)
 	space.AddShape(bottomWall)
 	leftWall := cp.NewBox2(space.StaticBody, cp.BB{L: -10, B: screenHeight + 10, R: 0, T: -10}, 0)
-	leftWall.SetFriction(1)
+	leftWall.SetFriction(0)
 	leftWall.SetElasticity(.7)
 	space.AddShape(leftWall)
 	rightWall := cp.NewBox2(space.StaticBody, cp.BB{L: screenWidth, B: screenHeight + 10, R: screenWidth + 10, T: -10}, 0)
-	rightWall.SetFriction(1)
+	rightWall.SetFriction(0)
 	rightWall.SetElasticity(.7)
 	space.AddShape(rightWall)
 	topRightTwoThirdWall := cp.NewBox2(space.StaticBody, cp.BB{
@@ -90,7 +166,7 @@ func NewGame() *Game {
 		R: screenWidth + 10,
 		T: screenHeight/3 - 2,
 	}, 0)
-	topRightTwoThirdWall.SetFriction(1)
+	topRightTwoThirdWall.SetFriction(0)
 	topRightTwoThirdWall.SetElasticity(.7)
 	space.AddShape(topRightTwoThirdWall)
 	bottomLeftTwoThirdWall := cp.NewBox2(space.StaticBody, cp.BB{
@@ -99,74 +175,83 @@ func NewGame() *Game {
 		R: screenWidth / 3 * 2,
 		T: screenHeight/3*2 - 2,
 	}, 0)
-	bottomLeftTwoThirdWall.SetFriction(1)
+	bottomLeftTwoThirdWall.SetFriction(0)
 	bottomLeftTwoThirdWall.SetElasticity(.7)
 	space.AddShape(bottomLeftTwoThirdWall)
+}
 
-	// Ball
-	var radius float64 = ballSize
-	var mass = 1.
-	moment := cp.MomentForCircle(mass, 0, radius, cp.Vector{})
-	ballBody := space.AddBody(cp.NewBody(mass, moment))
-	ballBody.SetPosition(cp.Vector{X: screenWidth / 6 * 5, Y: screenHeight / 6})
-	ballShape := space.AddShape(cp.NewCircle(ballBody, radius, cp.Vector{}))
-	ballShape.SetFriction(0.7)
-	ballShape.SetElasticity(.7)
-
-	// Mags
-	mags := make([]Mag, 0, 10)
-	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4, Y: screenHeight / 4}, enabled: true})
-	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4 * 3, Y: screenHeight / 4}, enabled: true})
-	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4 * 3, Y: screenHeight / 2}, enabled: true})
-
-	return &Game{
-		space: space,
-		ball:  ballBody,
-		mags:  mags,
+func collisionBallBellCallback() cp.CollisionPreSolveFunc {
+	return func(arb *cp.Arbiter, space *cp.Space, userData interface{}) bool {
+		if gamestate == GameRunning {
+			gamestate = GameEnded
+			return true
+		}
+		return arb.Ignore()
 	}
 }
 
 func (g *Game) Update() error {
+	// Score
+	if gamestate == GameRunning {
+		score = scoreStartingPoints - int((g.time-gamePreparingTimeout)*10) - magnetCounter*scoreMalusMagnet
+	}
+
 	// Kill the first old mag
-	for i, mag := range g.mags {
-		if mag.timeToDie <= g.time {
-			g.mags = append(g.mags[:i], g.mags[i+1:]...)
-			break
+	if gamestate >= GameRunning {
+		for i, mag := range g.mags {
+			if mag.timeToDie <= g.time {
+				g.mags = append(g.mags[:i], g.mags[i+1:]...)
+				break
+			}
 		}
 	}
 
+	// Starting the game after the preparation delay
+	if gamestate == GamePreparing && g.time > gamePreparingTimeout {
+		gamestate = GameRunning
+	}
+
+	// Start the preparation phase
+	if gamestate == GameReady && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		gamestate = GamePreparing
+		gamePreparingTimeout = g.time + preparationDuration
+	}
+
 	// New mag
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+	if gamestate >= GamePreparing && gamestate < GameEnded && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		mx, my := ebiten.CursorPosition()
 		g.mags = append(g.mags, Mag{
 			pos:       cp.Vector{X: float64(mx), Y: float64(my)},
 			timeToDie: g.time + magTTL,
 		})
+		magnetCounter++
 	}
 
 	// Reset mags
-	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+	if gamestate == GamePreparing && inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		g.mags = make([]Mag, 0, 10)
 	}
 
 	// Update force from mags
-	for _, mag := range g.mags {
-		v := cp.Vector{
-			X: mag.pos.X - g.ball.Position().X,
-			Y: mag.pos.Y - g.ball.Position().Y,
+	if gamestate >= GameRunning {
+		for _, mag := range g.mags {
+			v := cp.Vector{
+				X: mag.pos.X - g.ball.Position().X,
+				Y: mag.pos.Y - g.ball.Position().Y,
+			}
+			l := v.Length()
+			if l > maxLength {
+				continue
+			}
+			f := math.Pow(maxLength-l, 2)
+			vnm := v.Normalize().Mult(f)
+			g.ball.ApplyForceAtWorldPoint(vnm, cp.Vector{})
 		}
-		l := v.Length()
-		if l > maxLength {
-			continue
-		}
-		f := math.Pow(maxLength-l, 2)
-		vnm := v.Normalize().Mult(f)
-		g.ball.ApplyForceAtWorldPoint(vnm, cp.Vector{})
-	}
 
-	// Apply max force to ball
-	if g.ball.Force().Length() > maxForce {
-		g.ball.SetForce(g.ball.Force().Normalize().Mult(maxForce))
+		// Apply max force to ball
+		if g.ball.Force().Length() > maxForce {
+			g.ball.SetForce(g.ball.Force().Normalize().Mult(maxForce))
+		}
 	}
 
 	timeStep := 1.0 / float64(ebiten.MaxTPS())
@@ -200,7 +285,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Ball
 	op := &ebiten.DrawImageOptions{}
 	op.ColorM.Scale(200.0/255.0, 200.0/255.0, 200.0/255.0, 1)
-	op.GeoM.Translate(g.ball.Position().X, g.ball.Position().Y)
+	op.GeoM.Translate(g.ball.Position().X-ballSize/2, g.ball.Position().Y-ballSize/2)
 	screen.DrawImage(ballImage, op)
 	// Ball Velocity
 	if drawVelocity {
@@ -218,6 +303,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		screen.DrawImage(magImage, op)
 	}
 
+	// Bell
+	op.GeoM.Reset()
+	op.GeoM.Translate(g.bell.Position().X-bellSize/2, g.bell.Position().Y-bellSize/2)
+	screen.DrawImage(bellImage, op)
+
 	// Debug
 	pos := g.ball.Position()
 	vel := g.ball.Velocity()
@@ -225,11 +315,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(
 		screen,
 		fmt.Sprintf(
-			"Time is %5.1f\nPosition (%4.1f, %4.1f)\nVelocity (%4.1f, %4.1f)\nForce    (%4.1f, %4.1f)",
+			"Time is %5.1f\nPosition (%4.1f, %4.1f)\nVelocity (%4.1f, %4.1f)\nForce    (%4.1f, %4.1f)\nGameState: %d\nScore: %d",
 			g.time,
 			pos.X, pos.Y,
 			vel.X, vel.Y,
 			force.X, force.Y,
+			gamestate,
+			score,
 		))
 }
 
