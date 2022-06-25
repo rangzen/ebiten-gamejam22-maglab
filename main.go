@@ -391,7 +391,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	// Score
-	if gamestate > GameRunning {
+	if gamestate >= GameRunning {
 		scoreStr := fmt.Sprintf("Score: %d", score)
 		text.Draw(screen, scoreStr, arcadeFont, screenWidth-len(scoreStr)*fontSize-scoreMargin, fontSize+scoreMargin, color.White)
 	}
