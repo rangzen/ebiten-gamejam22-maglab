@@ -21,8 +21,9 @@ import (
 const (
 	// Window
 	title        = "MagLab - Ebitengine Game Jam 22"
-	screenWidth  = 800
-	screenHeight = 600
+	screenFactor = 3
+	screenWidth  = 108 * screenFactor
+	screenHeight = 234 * screenFactor
 
 	// GUI
 	ballSize     = 5
@@ -356,13 +357,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	switch gamestate {
 	case GameReady:
 		titleTexts = []string{"MagLab"}
-		texts = []string{"", "", "", "", "", "", "",
-			"PRESS SPACE KEY", "TO START", "THE PREPARATION PERIOD",
+		texts = []string{"", "", "", "", "", "", "", "", "",
+			"PRESS SPACE", "OR TOUCH", "TO START", "PREPARATION", "PERIOD",
 			fmt.Sprintf("(%d seconds)", preparationDuration)}
 	case GamePreparing:
 		t := gamePreparingTimeout - g.time
 		if t > 0.1 {
-			texts = []string{"", "", "", "", "", "", fmt.Sprintf("%.1f", t)}
+			texts = []string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", fmt.Sprintf("%.1f", t)}
 		}
 	case GameEnded:
 		texts = []string{"", "GAME OVER!"}
@@ -390,7 +391,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Score
 	if gamestate >= GameRunning {
 		scoreStr := fmt.Sprintf("Score: %d", score)
-		text.Draw(screen, scoreStr, arcadeFont, screenWidth-len(scoreStr)*fontSize-scoreMargin, fontSize+scoreMargin, color.White)
+		text.Draw(screen, scoreStr, arcadeFont, screenWidth-len(scoreStr)*fontSize-scoreMargin, screenHeight-fontSize+3*scoreMargin, color.White)
 	}
 }
 
