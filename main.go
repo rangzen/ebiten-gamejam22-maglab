@@ -256,7 +256,8 @@ func (g *Game) Update() error {
 	// Start the preparation phase
 	if gamestate == GameReady &&
 		(inpututil.IsKeyJustPressed(ebiten.KeySpace) ||
-			inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)) {
+			inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
+			len(inpututil.AppendJustPressedTouchIDs(nil)) > 0) {
 		gamestate = GamePreparing
 		gamePreparingTimeout = g.time + preparationDuration
 	}
@@ -360,7 +361,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	case GameReady:
 		titleTexts = []string{"MagLab"}
 		texts = []string{"", "", "", "", "", "", "", "", "",
-			"PRESS SPACE", "OR TOUCH", "TO START", "PREPARATION", "PERIOD",
+			"PRESS SPACE,", "CLICK,", "OR TOUCH", "TO START", "PREPARATION", "PERIOD",
 			fmt.Sprintf("(%d seconds)", preparationDuration)}
 	case GamePreparing:
 		t := gamePreparingTimeout - g.time
