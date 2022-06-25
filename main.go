@@ -254,19 +254,29 @@ func (g *Game) Update() error {
 	}
 
 	// Start the preparation phase
+	touchIDs := inpututil.AppendJustPressedTouchIDs(nil)
 	if gamestate == GameReady &&
 		(inpututil.IsKeyJustPressed(ebiten.KeySpace) ||
 			inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
-			len(inpututil.AppendJustPressedTouchIDs(nil)) > 0) {
+			len(touchIDs) > 0) {
 		gamestate = GamePreparing
 		gamePreparingTimeout = g.time + preparationDuration
 	}
 
-	// New mag
+	// New mag from mouse
 	if gamestate >= GamePreparing && gamestate < GameEnded && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		mx, my := ebiten.CursorPosition()
 		g.newMag(mx, my)
 		magnetCounter++
+	}
+
+	// New mag from touch
+	if gamestate >= GamePreparing && gamestate < GameEnded && len(touchIDs) > 0 {
+		for _, t := range touchIDs {
+			mx, my := ebiten.TouchPosition(t)
+			g.newMag(mx, my)
+			magnetCounter++
+		}
 	}
 
 	// Reset mags
