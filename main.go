@@ -160,9 +160,6 @@ func NewGame() *Game {
 
 	// Mags
 	mags := make([]Mag, 0, 10)
-	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4, Y: screenHeight / 4}, enabled: true})
-	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4 * 3, Y: screenHeight / 4}, enabled: true})
-	// mags = append(mags, Mag{pos: cp.Vector{X: screenWidth / 4 * 3, Y: screenHeight / 2}, enabled: true})
 
 	// Bell
 	bellMoment := cp.MomentForCircle(mass, 0, bellSize, cp.Vector{})
