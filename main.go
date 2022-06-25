@@ -254,7 +254,9 @@ func (g *Game) Update() error {
 	}
 
 	// Start the preparation phase
-	if gamestate == GameReady && inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+	if gamestate == GameReady &&
+		(inpututil.IsKeyJustPressed(ebiten.KeySpace) ||
+			inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft)) {
 		gamestate = GamePreparing
 		gamePreparingTimeout = g.time + preparationDuration
 	}
