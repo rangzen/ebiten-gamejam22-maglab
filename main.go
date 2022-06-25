@@ -395,21 +395,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		scoreStr := fmt.Sprintf("Score: %d", score)
 		text.Draw(screen, scoreStr, arcadeFont, screenWidth-len(scoreStr)*fontSize-scoreMargin, fontSize+scoreMargin, color.White)
 	}
-
-	// Debug
-	pos := g.ball.Position()
-	vel := g.ball.Velocity()
-	force := g.ball.Force()
-	ebitenutil.DebugPrint(
-		screen,
-		fmt.Sprintf(
-			"Time is %5.1f\nPosition (%4.1f, %4.1f)\nVelocity (%4.1f, %4.1f)\nForce    (%4.1f, %4.1f)\nGameState: %d",
-			g.time,
-			pos.X, pos.Y,
-			vel.X, vel.Y,
-			force.X, force.Y,
-			gamestate,
-		))
 }
 
 func (g *Game) Layout(_, _ int) (int, int) {
