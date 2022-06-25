@@ -265,10 +265,7 @@ func (g *Game) Update() error {
 	// New mag
 	if gamestate >= GamePreparing && gamestate < GameEnded && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		mx, my := ebiten.CursorPosition()
-		g.mags = append(g.mags, Mag{
-			pos:       cp.Vector{X: float64(mx), Y: float64(my)},
-			timeToDie: g.time + magTTL,
-		})
+		g.newMag(mx, my)
 		magnetCounter++
 	}
 
@@ -307,6 +304,14 @@ func (g *Game) Update() error {
 	g.ball.SetVelocityVector(g.ball.Velocity().Mult(.98))
 
 	return nil
+}
+
+// newMag creates a new mag at a specific location.
+func (g *Game) newMag(x, y int) {
+	g.mags = append(g.mags, Mag{
+		pos:       cp.Vector{X: float64(x), Y: float64(y)},
+		timeToDie: g.time + magTTL,
+	})
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
