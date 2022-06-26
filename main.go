@@ -381,7 +381,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	case GamePreparing:
 		t := gamePreparingTimeout - g.time
 		if t > 0.1 {
-			texts = []string{"", "", "", "", "", "", "", "", "", "", "", "", "", "", fmt.Sprintf("%.1f", t)}
+			texts = []string{"", "", "", "", "", "", "", "",
+				"ADD SOME", "MAGS", "TO BRING", "THE BALL", "TO THE BELL",
+				"", fmt.Sprintf("%.1f", t)}
 		}
 	case GameEnded:
 		texts = []string{"", "GAME OVER!"}
