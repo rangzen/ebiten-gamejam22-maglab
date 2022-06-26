@@ -29,7 +29,6 @@ const (
 	ballSize     = 5
 	magSize      = 5
 	bellSize     = 20
-	scoreMargin  = 5
 	drawVelocity = false
 
 	// Physics
@@ -236,10 +235,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(g.bell.Position().X-bellSize/2, g.bell.Position().Y-bellSize/2)
 	screen.DrawImage(bellImage, op)
 
-	// Texts
-	// Ref: https://github.com/hajimehoshi/ebiten/blob/main/examples/flappy/main.go
+	drawTexts(screen, g)
+}
+
+// Ref: https://github.com/hajimehoshi/ebiten/blob/main/examples/flappy/main.go
+func drawTexts(screen *ebiten.Image, g *Game) {
 	var titleTexts []string
 	var texts []string
+	scoreStr := fmt.Sprintf("Score: %d", score)
 	switch gamestate {
 	case GameReady:
 		titleTexts = []string{"MagLab"}
@@ -253,8 +256,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				"ADD SOME", "MAGS", "TO BRING", "THE BALL", "TO THE BELL",
 				"", fmt.Sprintf("%.1f", t)}
 		}
+	case GameRunning:
+		texts = []string{scoreStr}
 	case GameEnded:
-		texts = []string{"", "", "", "", "", "", "", "", "", "", "", "GAME OVER!"}
+		texts = []string{"", "", "", "", "", "", "", "", "", "", "", "GAME OVER!", "", scoreStr}
 	}
 	for i, l := range titleTexts {
 		x := (screenWidth - len(l)*titleFontSize) / 2
@@ -274,12 +279,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			x := (screenWidth - len(l)*smallFontSize) / 2
 			text.Draw(screen, l, smallArcadeFont, x, screenHeight-4+(i-1)*smallFontSize, color.White)
 		}
-	}
-
-	// Score
-	if gamestate >= GameRunning {
-		scoreStr := fmt.Sprintf("Score: %d", score)
-		text.Draw(screen, scoreStr, arcadeFont, screenWidth-len(scoreStr)*fontSize-scoreMargin, screenHeight-fontSize+3*scoreMargin, color.White)
 	}
 }
 
