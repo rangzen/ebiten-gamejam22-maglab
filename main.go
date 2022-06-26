@@ -386,7 +386,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				"", fmt.Sprintf("%.1f", t)}
 		}
 	case GameEnded:
-		texts = []string{"", "GAME OVER!"}
+		texts = []string{"", "", "", "", "", "", "", "", "", "", "", "GAME OVER!"}
 	}
 	for i, l := range titleTexts {
 		x := (screenWidth - len(l)*titleFontSize) / 2
