@@ -36,41 +36,14 @@ const (
 	magTTL    = 10    // Time to live of a mag in seconds
 	maxLength = 300.  // Distance max between ball and mag to have effect
 	maxForce  = 3000. // Max force to apply to ball
-
-	// Game Settings
-	preparationDuration = 5    // Time for preparing, before game starts
-	scoreStartingPoints = 6128 // Max score for 1 minute
-	scoreMalusMagnet    = 42   // How many malus points for each magnet
 )
 
 const (
-	CollisionUnknown = iota
-	CollisionBall
+	CollisionBall = iota + 1
 	CollisionBell
-	collisionEnd
-)
-
-type GameState int
-
-const (
-	GameUnknown GameState = iota
-	GameInitialising
-	GameReady
-	GamePreparing
-	GameRunning
-	GameEnded
-	gameEnd
 )
 
 var (
-	// Game
-	gamestate            = GameInitialising
-	gameLevel            int
-	gameLevels           = []Level{LevelS{}}
-	gamePreparingTimeout float64
-	magnetCounter        = 0
-	score                int
-
 	// Images
 	ballImage = ebiten.NewImage(ballSize, ballSize)
 	magImage  = ebiten.NewImage(magSize, magSize)
@@ -134,38 +107,6 @@ func main() {
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}
-}
-
-type Mag struct {
-	pos       cp.Vector
-	timeToDie float64
-}
-
-type Game struct {
-	space *cp.Space
-	ball  *cp.Body
-	mags  []Mag
-	bell  *cp.Body
-	time  float64
-}
-
-func NewGame() *Game {
-	game := &Game{}
-
-	// Chipmunk Space
-	game.space = cp.NewSpace()
-
-	createWalls(game.space)
-
-	gameLevels[gameLevel].StartPosition(game)
-
-	game.mags = make([]Mag, 0, 10)
-
-	game.space.NewCollisionHandler(CollisionBall, CollisionBell).PreSolveFunc = collisionBallBellCallback()
-
-	gamestate = GameReady
-
-	return game
 }
 
 func collisionBallBellCallback() cp.CollisionPreSolveFunc {
@@ -260,14 +201,6 @@ func (g *Game) Update() error {
 	g.ball.SetVelocityVector(g.ball.Velocity().Mult(.98))
 
 	return nil
-}
-
-// newMag creates a new mag at a specific location.
-func (g *Game) newMag(x, y int) {
-	g.mags = append(g.mags, Mag{
-		pos:       cp.Vector{X: float64(x), Y: float64(y)},
-		timeToDie: g.time + magTTL,
-	})
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
