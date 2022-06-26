@@ -375,7 +375,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	switch gamestate {
 	case GameReady:
 		titleTexts = []string{"MagLab"}
-		texts = []string{"", "", "", "", "", "", "", "", "",
+		texts = []string{"", "", "", "", "", "", "", "",
 			"PRESS SPACE,", "CLICK,", "OR TOUCH", "TO START", "PREPARATION", "PERIOD",
 			fmt.Sprintf("(%d seconds)", preparationDuration)}
 	case GamePreparing:
