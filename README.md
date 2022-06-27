@@ -3,7 +3,7 @@
 ## Play
 
 * On [Github](https://rangzen.github.io/ebiten-gamejam22-maglab/)
-* On [Itch.io](https://totoro83.itch.io/maglab-ebitengine-game-jam-2022)
+* On [Itch.io](https://rangzen.itch.io/maglab-ebitengine-game-jam-2022)
 
 ## Acknowledgment
 
