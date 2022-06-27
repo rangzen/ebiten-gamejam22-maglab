@@ -95,6 +95,8 @@ func (l LevelVoid) StartPosition(game *Game) {
 	startPositionNorthEastSouthWest(game)
 }
 
+func (l LevelVoid) Draw(_ *ebiten.Image) {}
+
 func startPositionNorthEastSouthWest(game *Game) {
 	var mass = 1.
 
@@ -120,5 +122,3 @@ func startPositionNorthEastSouthWest(game *Game) {
 	bellShape.SetCollisionType(CollisionBell)
 	game.bell = bellBody
 }
-
-func (l LevelVoid) Draw(_ *ebiten.Image) {}
