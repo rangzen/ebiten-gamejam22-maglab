@@ -97,6 +97,55 @@ func (l LevelVoid) StartPosition(game *Game) {
 
 func (l LevelVoid) Draw(_ *ebiten.Image) {}
 
+type LevelTop struct{}
+
+func (l LevelTop) Name() string {
+	return "Top"
+}
+
+func (l LevelTop) AddWalls(space *cp.Space) {
+	wall := cp.NewBox2(space.StaticBody, cp.BB{
+		L: screenWidth/2 - 2,
+		B: screenHeight + 2,
+		R: screenWidth/2 + 2,
+		T: screenHeight / 10,
+	}, 0)
+	wall.SetFriction(0)
+	wall.SetElasticity(.7)
+	space.AddShape(wall)
+}
+
+func (l LevelTop) StartPosition(game *Game) {
+	var mass = 1.
+
+	space := game.space
+
+	// Ball
+	ballMoment := cp.MomentForCircle(mass, 0, ballSize, cp.Vector{})
+	ballBody := space.AddBody(cp.NewBody(mass, ballMoment))
+	ballBody.SetPosition(cp.Vector{X: screenWidth / 6 * 5, Y: screenHeight / 6 * 5})
+	ballShape := space.AddShape(cp.NewCircle(ballBody, ballSize, cp.Vector{}))
+	ballShape.SetFriction(0.7)
+	ballShape.SetElasticity(.7)
+	ballShape.SetCollisionType(CollisionBall)
+	game.ball = ballBody
+
+	// Bell
+	bellMoment := cp.MomentForCircle(mass, 0, bellSize, cp.Vector{})
+	bellBody := space.AddBody(cp.NewBody(mass, bellMoment))
+	bellBody.SetPosition(cp.Vector{X: screenWidth / 6, Y: screenHeight / 6 * 5})
+	bellShape := space.AddShape(cp.NewCircle(bellBody, bellSize, cp.Vector{}))
+	bellShape.SetFriction(0.7)
+	bellShape.SetElasticity(.7)
+	bellShape.SetCollisionType(CollisionBell)
+	game.bell = bellBody
+}
+
+func (l LevelTop) Draw(screen *ebiten.Image) {
+	// Top
+	ebitenutil.DrawLine(screen, screenWidth/2, screenHeight/10, screenWidth/2, screenHeight, color.White)
+}
+
 func startPositionNorthEastSouthWest(game *Game) {
 	var mass = 1.
 

@@ -23,7 +23,7 @@ const (
 var (
 	gamestate            = GameInitialising
 	gameLevel            int
-	gameLevels           = []Level{LevelVoid{}, LevelS{}}
+	gameLevels           = []Level{LevelVoid{}, LevelTop{}, LevelS{}}
 	gamePreparingTimeout float64
 	magnetCounter        = 0
 	score                int
