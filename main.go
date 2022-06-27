@@ -108,10 +108,28 @@ func main() {
 	}
 }
 
-func collisionBallBellCallback() cp.CollisionPreSolveFunc {
+func collisionBallBellCallback(game *Game) cp.CollisionPreSolveFunc {
 	return func(arb *cp.Arbiter, space *cp.Space, userData interface{}) bool {
 		if gamestate == GameRunning {
-			gamestate = GameEnded
+			if gameLevel == len(gameLevels)-1 {
+				gamestate = GameEnded
+			} else {
+				gameLevel++
+				space.EachShape(func(shape *cp.Shape) {
+					space.RemoveShape(shape)
+				})
+				space.EachBody(func(body *cp.Body) {
+					space.RemoveBody(body)
+				})
+				space.StaticBody = cp.NewStaticBody()
+				createWalls(game.space)
+				gameLevels[gameLevel].AddWalls(game.space)
+				gameLevels[gameLevel].StartPosition(game)
+				game.mags = make([]Mag, 0, 20)
+				gamePreparingTimeout = game.time + preparationDuration
+				scorePreviousLevel = score
+				gamestate = GamePreparing
+			}
 			return true
 		}
 		return arb.Ignore()
@@ -120,8 +138,11 @@ func collisionBallBellCallback() cp.CollisionPreSolveFunc {
 
 func (g *Game) Update() error {
 	// Score
+	if gamestate == GamePreparing {
+		score = scorePreviousLevel - magnetCounter*scoreMalusMagnet
+	}
 	if gamestate == GameRunning {
-		score = scoreStartingPoints - int((g.time-gamePreparingTimeout)*10) - magnetCounter*scoreMalusMagnet
+		score = scorePreviousLevel - int((g.time-gamePreparingTimeout)*10) - magnetCounter*scoreMalusMagnet
 	}
 
 	// Kill the first old mag
@@ -242,8 +263,15 @@ func (g *Game) Draw(screen *ebiten.Image) {
 func drawTexts(screen *ebiten.Image, g *Game) {
 	var titleTexts []string
 	var texts []string
+	var msg []string
 	scoreStr := fmt.Sprintf("Score: %d", score)
+	levelStr := fmt.Sprintf("Level: %s", gameLevels[gameLevel].Name())
 	switch gamestate {
+	case GameInitialising:
+		msg = []string{
+			"MagLab by rangzen is",
+			"licenced under CC BY 3.0.",
+		}
 	case GameReady:
 		titleTexts = []string{"MagLab"}
 		texts = []string{"", "", "", "", "", "", "", "",
@@ -252,15 +280,25 @@ func drawTexts(screen *ebiten.Image, g *Game) {
 	case GamePreparing:
 		t := gamePreparingTimeout - g.time
 		if t > 0.1 {
-			texts = []string{"", "", "", "", "", "", "", "",
-				"ADD SOME", "MAGS", "TO BRING", "THE BALL", "TO THE BELL",
-				"", fmt.Sprintf("%.1f", t)}
+			if gameLevel == 0 {
+				texts = []string{"", "", "", "", "", "", "", "",
+					"ADD SOME", "MAGS", "TO BRING", "THE BALL", "TO THE BELL",
+					"", fmt.Sprintf("%.1f", t)}
+			} else {
+				texts = []string{scoreStr, "", "", "", "", "", "", "",
+					"PREPARATION", "PERIOD", "", "", "",
+					"", fmt.Sprintf("%.1f", t)}
+			}
 		}
+		msg = []string{levelStr}
 	case GameRunning:
 		texts = []string{scoreStr}
+		msg = []string{levelStr}
 	case GameEnded:
 		texts = []string{"", "", "", "", "", "", "", "", "", "", "", "GAME OVER!", "", scoreStr}
+		msg = []string{levelStr}
 	}
+
 	for i, l := range titleTexts {
 		x := (screenWidth - len(l)*titleFontSize) / 2
 		text.Draw(screen, l, titleArcadeFont, x, (i+4)*titleFontSize, color.White)
@@ -269,16 +307,9 @@ func drawTexts(screen *ebiten.Image, g *Game) {
 		x := (screenWidth - len(l)*fontSize) / 2
 		text.Draw(screen, l, arcadeFont, x, (i+4)*fontSize, color.White)
 	}
-
-	if gamestate <= GameReady {
-		msg := []string{
-			"MagLab by rangzen is",
-			"licenced under CC BY 3.0.",
-		}
-		for i, l := range msg {
-			x := (screenWidth - len(l)*smallFontSize) / 2
-			text.Draw(screen, l, smallArcadeFont, x, screenHeight-4+(i-1)*smallFontSize, color.White)
-		}
+	for i, l := range msg {
+		x := (screenWidth - len(l)*smallFontSize) / 2
+		text.Draw(screen, l, smallArcadeFont, x, screenHeight-4+(i-1)*smallFontSize, color.White)
 	}
 }
 

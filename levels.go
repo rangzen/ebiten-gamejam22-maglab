@@ -25,6 +25,33 @@ func createWalls(space *cp.Space) {
 	rightWall.SetFriction(0)
 	rightWall.SetElasticity(.7)
 	space.AddShape(rightWall)
+}
+
+func drawWalls(screen *ebiten.Image) {
+	// Top
+	ebitenutil.DrawLine(screen, 0, 0, screenWidth, 0, color.White)
+	// Bottom
+	ebitenutil.DrawLine(screen, 0, screenHeight-1, screenWidth, screenHeight-1, color.White)
+	// Left
+	ebitenutil.DrawLine(screen, 1, 0, 1, screenHeight, color.White)
+	// Right
+	ebitenutil.DrawLine(screen, screenWidth, 0, screenWidth, screenHeight, color.White)
+}
+
+type Level interface {
+	Name() string
+	AddWalls(space *cp.Space)
+	StartPosition(game *Game)
+	Draw(screen *ebiten.Image)
+}
+
+type LevelS struct{}
+
+func (l LevelS) Name() string {
+	return "Snake"
+}
+
+func (l LevelS) AddWalls(space *cp.Space) {
 	topRightTwoThirdWall := cp.NewBox2(space.StaticBody, cp.BB{
 		L: screenWidth / 3,
 		B: screenHeight/3 + 2,
@@ -45,30 +72,30 @@ func createWalls(space *cp.Space) {
 	space.AddShape(bottomLeftTwoThirdWall)
 }
 
-func drawWalls(screen *ebiten.Image) {
-	// Top
-	ebitenutil.DrawLine(screen, 0, 0, screenWidth, 0, color.White)
-	// Bottom
-	ebitenutil.DrawLine(screen, 0, screenHeight-1, screenWidth, screenHeight-1, color.White)
-	// Left
-	ebitenutil.DrawLine(screen, 1, 0, 1, screenHeight, color.White)
-	// Right
-	ebitenutil.DrawLine(screen, screenWidth, 0, screenWidth, screenHeight, color.White)
-}
-
-type Level interface {
-	Name() string
-	StartPosition(game *Game)
-	Draw(screen *ebiten.Image)
-}
-
-type LevelS struct{}
-
-func (l LevelS) Name() string {
-	return "Snake"
-}
-
 func (l LevelS) StartPosition(game *Game) {
+	startPositionNorthEastSouthWest(game)
+}
+
+func (l LevelS) Draw(screen *ebiten.Image) {
+	// Top right 2/3
+	ebitenutil.DrawLine(screen, screenWidth/3, screenHeight/3, screenWidth, screenHeight/3, color.White)
+	// Bottom left 2/3
+	ebitenutil.DrawLine(screen, 0, screenHeight/3*2, screenWidth/3*2, screenHeight/3*2, color.White)
+}
+
+type LevelVoid struct{}
+
+func (l LevelVoid) Name() string {
+	return "Void"
+}
+
+func (l LevelVoid) AddWalls(_ *cp.Space) {}
+
+func (l LevelVoid) StartPosition(game *Game) {
+	startPositionNorthEastSouthWest(game)
+}
+
+func startPositionNorthEastSouthWest(game *Game) {
 	var mass = 1.
 
 	space := game.space
@@ -94,9 +121,4 @@ func (l LevelS) StartPosition(game *Game) {
 	game.bell = bellBody
 }
 
-func (l LevelS) Draw(screen *ebiten.Image) {
-	// Top right 2/3
-	ebitenutil.DrawLine(screen, screenWidth/3, screenHeight/3, screenWidth, screenHeight/3, color.White)
-	// Bottom left 2/3
-	ebitenutil.DrawLine(screen, 0, screenHeight/3*2, screenWidth/3*2, screenHeight/3*2, color.White)
-}
+func (l LevelVoid) Draw(_ *ebiten.Image) {}

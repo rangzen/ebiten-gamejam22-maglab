@@ -23,10 +23,11 @@ const (
 var (
 	gamestate            = GameInitialising
 	gameLevel            int
-	gameLevels           = []Level{LevelS{}}
+	gameLevels           = []Level{LevelVoid{}, LevelS{}}
 	gamePreparingTimeout float64
 	magnetCounter        = 0
 	score                int
+	scorePreviousLevel   = scoreStartingPoints
 )
 
 type Game struct {
@@ -44,12 +45,13 @@ func NewGame() *Game {
 	game.space = cp.NewSpace()
 
 	createWalls(game.space)
+	gameLevels[gameLevel].AddWalls(game.space)
 
 	gameLevels[gameLevel].StartPosition(game)
 
-	game.mags = make([]Mag, 0, 10)
+	game.mags = make([]Mag, 0, 20)
 
-	game.space.NewCollisionHandler(CollisionBall, CollisionBell).PreSolveFunc = collisionBallBellCallback()
+	game.space.NewCollisionHandler(CollisionBall, CollisionBell).PreSolveFunc = collisionBallBellCallback(game)
 
 	gamestate = GameReady
 
